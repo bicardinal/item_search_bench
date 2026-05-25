@@ -1,0 +1,5 @@
+numpy
+pandas
+brinicle
+opensearchpy
+weaviate-client
