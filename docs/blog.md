@@ -1,3 +1,4 @@
+
 # Abstract
 
 Hybrid search is commonly implemented by combining lexical retrieval over an inverted index with semantic retrieval over a vector index, followed by score fusion or reranking. This paper studies an alternative formulation: representing lexical and semantic product-search signals inside a single HNSW graph. Brinicle encodes product-title tokens and dense title embeddings into one searchable representation. A custom distance function combines symbolic title matching and vector similarity during graph traversal, allowing lexical, semantic, and hybrid retrieval behavior to be expressed through the same graph structure. We evaluate this approach on WANDS and US-filtered Amazon ESCI using title-based hybrid product retrieval. Brinicle is compared with Weaviate, Meilisearch, Typesense, and OpenSearch under shared resource limits and the same precomputed embedding model. Across both datasets, Brinicle achieves competitive retrieval quality while reducing search memory usage and P99 latency relative to the compared systems. These results indicate that, for title-based product retrieval, hybrid search can be modeled as a single-graph retrieval problem rather than as post-hoc fusion over separate lexical and vector retrieval structures.
@@ -918,9 +919,15 @@ The system measurements again show the largest differences in latency and memory
 
 ## 6.3 P99 search latency
 
-[Figure 1: P99 search latency on WANDS and ESCI.]
+  
+  ![Figure 1](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/wands_p99_latency_bw.png?raw=true)  
+  *Figure 1. P99 search latency on WANDS.*
+  
+![Figure 2](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/esci_p99_latency_bw.png?raw=true)  
+*Figure 2. P99 search latency on ESCI.*
+  
 
-Figure 1 compares P99 search latency across engines on both datasets.
+Figures 1 and 2 compare P99 search latency across engines on both datasets.
 
 | Dataset |     Brinicle | Meilisearch | OpenSearch | Typesense |  Weaviate |
 | ------- | -----------: | ----------: | ---------: | --------: | --------: |
@@ -933,6 +940,12 @@ Brinicle has the lowest measured P99 latency on both datasets. On WANDS, its P99
 
 ## 6.4 Search memory
 
+![Figure 3](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/wands_search_memory_bw.png?raw=true)  
+*Figure 3. Peak search memory on WANDS.*
+
+![Figure 4](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/esci_search_memory_bw.png?raw=true)  
+*Figure 4. Peak search memory on ESCI.*
+  
 Table 4 reports peak search memory for both datasets.
 
 | Dataset |     Brinicle | Meilisearch | OpenSearch | Typesense | Weaviate |
@@ -948,9 +961,15 @@ The memory difference is larger on ESCI, where the corpus is substantially large
 
 ## 6.5 Hit@K curves
 
-[Figure 2: Hit@K curves on WANDS and ESCI.]
+![Figure 5](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/wands_hit_curve_bw.png?raw=true)  
+*Figure 5. Hit@K curve on WANDS using exact relevance.*
 
-Figure 2 reports Hit@K curves for both datasets using exact relevance. The curves show the ranking behavior across `K = 1, 5, 10, 20, 50, 100`.
+![Figure 6](https://github.com/bicardinal/item_search_bench/blob/main/benchmark_figures/esci_hit_curve_bw.png?raw=true)  
+*Figure 6. Hit@K curve on ESCI using exact relevance.*  
+  
+
+  
+Figures 5 and 6 report Hit@K curves across `K = 1, 5, 10, 20, 50, 100`.
 
 On WANDS, OpenSearch is slightly ahead across the main reported relevance points, while Brinicle remains close. On ESCI, Brinicle leads at early ranking points reported in Table 2, while Weaviate and OpenSearch reach higher `Hit@100`.
 
