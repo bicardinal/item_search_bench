@@ -38,13 +38,13 @@ sony wh-1000xm5
 m2 macbook air
 ```
 
-In these cases, numbers, model identifiers, and capacities are not incidental text. They are part of the user’s intent. A semantically related result with the wrong model or capacity may be commercially incorrect.
+In these cases, numbers, model identifiers, and capacities are not incidental text. They are part of the user's intent. A semantically related result with the wrong model or capacity may be commercially incorrect.
 
 At the same time, product titles are often long and noisy. They may contain brands, colors, editions, years, bundle descriptions, packaging terms, seller formatting, and marketing phrases. Users rarely type the full title. A retrieval system therefore needs to tolerate partial queries and vocabulary mismatch without losing exact symbolic evidence.
 
 This makes product search a natural hybrid retrieval task. Lexical matching helps preserve exact constraints. Dense embeddings help recover semantically related titles when surface forms differ.
 
-## 1.3 Brinicle’s approach
+## 1.3 Brinicle's approach
 
 Brinicle encodes product-title tokens and dense embeddings into a single HNSW-searchable representation. The graph is built over this representation, and a custom scorer defines how the symbolic and semantic components contribute to distance.
 
@@ -58,7 +58,7 @@ encoded item representation
 
 The encoded representation stores title-token evidence and, when enabled, a dense vector. The HNSW graph provides approximate nearest-neighbor traversal. The distance function determines whether the search behaves lexically, semantically, or as a hybrid of both.
 
-This paper focuses on title-based hybrid retrieval. The evaluated configuration uses product titles and precomputed title embeddings for both documents and queries. Brinicle’s broader item-search representation can include structured fields such as category, subcategory, and attributes, but the benchmark isolates the title + vector retrieval setting.
+This paper focuses on title-based hybrid retrieval. The evaluated configuration uses product titles and precomputed title embeddings for both documents and queries. Brinicle's broader item-search representation can include structured fields such as category, subcategory, and attributes, but the benchmark isolates the title + vector retrieval setting.
 
 ## 1.4 Evaluation overview
 
@@ -74,7 +74,7 @@ This paper makes four contributions.
 
 First, it presents a single-graph formulation for hybrid product retrieval, where lexical and semantic evidence are represented inside one HNSW-searchable object.
 
-Second, it describes Brinicle’s encoded item representation and hybrid-aware distance function, including symbolic title matching, dense-vector similarity, and the alpha mechanism used to control semantic bias.
+Second, it describes Brinicle's encoded item representation and hybrid-aware distance function, including symbolic title matching, dense-vector similarity, and the alpha mechanism used to control semantic bias.
 
 Third, it evaluates the approach on two product-search benchmarks against four established hybrid search systems under shared resource limits.
 
@@ -82,28 +82,13 @@ Fourth, it reports the resulting trade-off between retrieval quality, memory usa
 
 ---
 
-
 # 2. One-Graph Hybrid Retrieval
 
 Hybrid retrieval is often described as a fusion problem: lexical retrieval produces one ranked list, semantic retrieval produces another, and a combination layer merges the two into a final ranking. Brinicle uses a different formulation. It treats hybrid retrieval as graph traversal over a representation that contains both symbolic and semantic evidence.
 
 In this formulation, each item is encoded into one HNSW-searchable object. The object contains lexical title evidence and, in hybrid mode, a dense embedding. The HNSW graph is built over these encoded objects, and retrieval is controlled by a distance function that can read and combine the different regions of the representation.
 
-At a high level, the retrieval pipeline is:
-
-```text
-document title
-+ optional dense embedding
-        ↓
-encoded item representation
-        ↓
-single HNSW graph
-        ↓
-hybrid-aware distance function
-        ↓
-ranked results
-```
-
+At a high level, the retrieval pipeline is 1. document title + optional dense embedding 2. encoded item representation 3. single HNSW graph 4. hybrid-aware distance function 5. ranked results.
 The key design choice is that lexical and semantic evidence participate in the same graph traversal. Candidate exploration is therefore influenced by the combined distance, rather than by a post-processing step over independently retrieved lexical and vector candidates.
 
 ## 2.1 Retrieval as distance over structured representations
@@ -130,29 +115,13 @@ This makes the HNSW graph a retrieval structure over hybrid-search objects. The 
 
 ## 2.2 Unified candidate exploration
 
-In a two-index hybrid system, candidate generation is usually split across retrieval structures. A lexical index explores term-based candidates, while a vector index explores embedding-based candidates. Fusion happens after those candidate sets have already been produced.
-
-Brinicle moves the hybrid decision earlier. Since graph traversal uses a distance function that includes both title-token matching and vector similarity, lexical and semantic evidence affect candidate exploration directly.
-
-This changes the role of the hybrid scorer. It is not only a final ranking function. It also helps define local neighborhoods in the graph and influences which candidates are reached during approximate search.
-
-The result is a single candidate-exploration structure:
-
-```text
-encoded query
-        ↓
-HNSW traversal using hybrid distance
-        ↓
-candidate set
-        ↓
-ranked results
-```
+In a two-index hybrid system, candidate generation is usually split across retrieval structures. A lexical index explores term-based candidates, while a vector index explores embedding-based candidates. Fusion happens after those candidate sets have already been produced. Brinicle moves the hybrid decision earlier. Since graph traversal uses a distance function that includes both title-token matching and vector similarity, lexical and semantic evidence affect candidate exploration directly. This changes the role of the hybrid scorer. It is not only a final ranking function. It also helps define local neighborhoods in the graph and influences which candidates are reached during approximate search. The result is a single candidate-exploration structure: 1. encoded query 2. HNSW traversal using hybrid distance 3. candidate set 4. ranked results.
 
 This is the central architectural distinction. Hybrid behavior is part of the graph-search process itself.
 
 ## 2.3 Retrieval modes as distance configurations
 
-Brinicle’s retrieval modes are expressed through distance configuration.
+Brinicle's retrieval modes are expressed through distance configuration.
 
 The same encoded representation can support lexical, vector, or hybrid retrieval by changing the active components and their weights:
 
@@ -184,19 +153,7 @@ The benchmark in this paper focuses on the hybrid configuration, where product t
 
 ## 2.4 Product-title hybrid retrieval
 
-Product titles provide a useful test case for one-graph hybrid retrieval because they combine short exact identifiers with longer noisy descriptions.
-
-A title may contain model numbers, capacities, color names, brand names, technical variants, and marketing text. Some tokens are highly specific and must be matched carefully. Other parts of the title provide broader semantic context.
-
-Brinicle’s representation preserves title-token evidence explicitly while also attaching dense semantic vectors. This allows the distance function to reward exact symbolic matches and semantic proximity within the same graph search.
-
-For example, a query such as:
-
-```text
-iphone 15 256gb
-```
-
-benefits from exact matching on `iphone`, `15`, and `256gb`, while vector similarity can still help when relevant product titles use different surrounding language.
+Product titles provide a useful test case for one-graph hybrid retrieval because they combine short exact identifiers with longer noisy descriptions. A title may contain model numbers, capacities, color names, brand names, technical variants, and marketing text. Some tokens are highly specific and must be matched carefully. Other parts of the title provide broader semantic context. Brinicle's representation preserves title-token evidence explicitly while also attaching dense semantic vectors. This allows the distance function to reward exact symbolic matches and semantic proximity within the same graph search. For example, a query such as "iphone 15 256gb" benefits from exact matching on `iphone`, `15`, and `256gb`, while vector similarity can still help when relevant product titles use different surrounding language.
 
 The same principle applies to product queries involving model identifiers, abbreviated names, or partial descriptions. The graph does not need to choose between symbolic and semantic retrieval as separate execution paths. Both signals are available to the distance function.
 
@@ -232,7 +189,7 @@ Each encoded object begins with a fixed-size header followed by a variable-lengt
 
 The header stores metadata needed by the distance function:
 
-```text id="fm3guk"
+```text
 [
   version,
   title_count,
@@ -246,7 +203,7 @@ The header stores metadata needed by the distance function:
 
 The payload stores the searchable content:
 
-```text id="88pz5v"
+```text
 title token ids
 + optional attribute key/value ids
 + optional dense vector
@@ -256,7 +213,7 @@ The header allows the scorer to parse the representation without external metada
 
 For title-based hybrid retrieval, the active regions are:
 
-```text id="swmtly"
+```text
 title token ids
 + dense title embedding
 ```
@@ -265,29 +222,12 @@ This layout keeps the representation numeric while preserving internal structure
 
 ## 3.2 Title-token encoding
 
-Product titles are converted into sorted token identifiers. The title encoding pipeline is:
-
-```text id="jsltls"
-title text
-  ↓
-normalization
-  ↓
-isolated tokenization
-  ↓
-token-id extraction
-  ↓
-special-token filtering
-  ↓
-term-frequency packing
-  ↓
-sorted title-token representation
-```
-
+Product titles are converted into sorted token identifiers. The title encoding pipeline is: 1. title text 2. normalization 3. isolated tokenization 4. token-id extraction 5. special-token filtering 6. term-frequency packing 7. sorted title-token representation.
 The tokenizer preserves short product-specific fragments such as numbers, model names, and compact identifiers. These fragments are important in product retrieval because small textual differences can change the target item.
 
 Examples include:
 
-```text id="f6f5rw"
+```text
 4060
 256gb
 13 inch
@@ -302,7 +242,7 @@ Dense embeddings can place related products near each other, but exact fragments
 
 Title tokens include a small saturated term-frequency signal. Conceptually, each stored title token combines a token id with a compact frequency component:
 
-```text id="u4t5hi"
+```text
 packed_title_token = token_id + small_tf_component
 ```
 
@@ -316,7 +256,7 @@ In hybrid mode, Brinicle appends a dense embedding to the lexical representation
 
 A document is encoded as:
 
-```text id="cw3x43"
+```text
 header
 + title-token representation
 + dense title embedding
@@ -324,7 +264,7 @@ header
 
 A query is encoded as:
 
-```text id="fupvlm"
+```text
 header
 + query-token representation
 + dense query embedding
@@ -336,9 +276,9 @@ The resulting object is still a single HNSW-searchable representation, but the s
 
 ## 3.5 Optional structured fields
 
-Brinicle’s general item representation can also encode structured fields:
+Brinicle's general item representation can also encode structured fields:
 
-```text id="vku1h3"
+```text
 category
 subcategory
 attributes
@@ -346,7 +286,7 @@ attributes
 
 Category and subcategory are stored as stable identifiers. Attributes are stored as sorted key/value id pairs:
 
-```text id="hm4cln"
+```text
 [
   key_id_1, value_id_1,
   key_id_2, value_id_2,
@@ -364,21 +304,21 @@ Documents and queries are encoded into the same representation family. This is w
 
 A document may contain:
 
-```text id="3z7yzk"
+```text
 product-title tokens
 + product-title embedding
 ```
 
 A query may contain:
 
-```text id="8xcb1i"
+```text
 query tokens
 + query embedding
 ```
 
 The distance function compares the two encoded objects by reading their corresponding regions:
 
-```text id="nn3dj8"
+```text
 title-token agreement
 + optional structured-field agreement
 + vector similarity
@@ -388,7 +328,7 @@ This shared representation is central to the one-graph design. The graph stores 
 
 ## 3.7 Encoding summary
 
-Brinicle’s item/query representation can be summarized as:
+Brinicle's item/query representation can be summarized as:
 
 ```text id="772ssj"
 encoded object =
@@ -408,11 +348,11 @@ Here is the rewritten **Section 4: Distance Function**. I kept the technical cor
 
 # 4. Distance Function
 
-Brinicle’s encoded representation becomes searchable through a custom distance function. The distance function reads the structured regions of the encoded query and document, computes component-wise distances, and combines them into a single value used by HNSW during graph construction and search.
+Brinicle's encoded representation becomes searchable through a custom distance function. The distance function reads the structured regions of the encoded query and document, computes component-wise distances, and combines them into a single value used by HNSW during graph construction and search.
 
 For the general item-search representation, the distance has the form:
 
-```text id="i2wr4c"
+```text
 D(q, d) =
 w_title       · D_title(q, d)
 + w_attr      · D_attr(q, d)
@@ -425,7 +365,7 @@ where `q` is the encoded query, `d` is the encoded document, and each component 
 
 The benchmarked hybrid configuration uses the title and vector components:
 
-```text id="0jcxtd"
+```text
 D(q, d) =
 w_title  · D_title(q, d)
 + w_vector · D_vector(q, d)
@@ -439,20 +379,20 @@ The title component measures symbolic agreement between query tokens and documen
 
 Brinicle uses a Tversky-style similarity:
 
-```text id="moc168"
+```text
 S_title(q, d) =
 matched / (matched + α_title · only_query + β_title · extra_document)
 ```
 
 The corresponding distance is:
 
-```text id="gd5w30"
+```text
 D_title(q, d) = 1 - S_title(q, d)
 ```
 
 Here:
 
-```text id="im2fg2"
+```text
 matched        = weighted title-token matches
 only_query     = query tokens missing from the document title
 extra_document = document-title tokens not present in the query
@@ -460,36 +400,21 @@ extra_document = document-title tokens not present in the query
 
 The parameters `α_title` and `β_title` control the relative cost of missing query tokens and extra document tokens.
 
-This is useful for product retrieval because a relevant product title may contain all query terms plus additional descriptive text. For example:
-
-```text id="kqho5y"
-query:
-iphone 15 256gb
-
-document title:
-Apple iPhone 15 256GB Blue Unlocked Smartphone 2023
-```
-
+This is useful for product retrieval because a relevant product title may contain all query terms plus additional descriptive text. For example, query "iphone 15 256gb", and document title "Apple iPhone 15 256GB Blue Unlocked Smartphone 2023".
 The extra document terms provide context, but missing query terms usually represent a stronger mismatch. The asymmetric title distance reflects this behavior.
 
 ## 4.2 Term-frequency saturation
 
 Title-token matches use the packed term-frequency signal described in Section 3. Repeated terms are passed through a saturation function before contributing to the title score:
 
-```text id="g6zd1d"
+```text
 tf_sat(tf) =
 (tf · (k1 + 1)) / (tf + k1)
 ```
 
 The saturation limits the effect of repeated title terms. A repeated token can increase the contribution of a match, but repeated words do not scale linearly without bound.
 
-This gives the title component a controlled lexical signal:
-
-```text id="4xbv1p"
-token match     → positive evidence
-repeated token  → slightly stronger evidence
-excess repetition → saturated contribution
-```
+This gives the title component a controlled lexical signal. Token match is a positive evidence, Repeated token is slightly stronger evidence, and excess repetition is saturated contribution.
 
 ## 4.3 Build-time and search-time title configuration
 
@@ -513,7 +438,7 @@ The build-time configuration shapes graph neighborhoods using balanced title ove
 
 The vector component measures semantic similarity between the query embedding and the document embedding. Brinicle uses scaled cosine distance:
 
-```text id="ikdaj5"
+```text
 D_vector(q, d) = 0.5 · (1 - cos(q, d))
 ```
 
@@ -527,7 +452,7 @@ The general Brinicle scorer can also compare structured fields. Category and sub
 
 For category-like identifiers, the distance is direct:
 
-```text id="dvveoo"
+```text
 D_id(a, b) =
 0                if a or b is unknown
 0                if a = b
@@ -536,7 +461,7 @@ field_penalty    otherwise
 
 For attributes, the scorer compares matching keys and evaluates whether their values agree:
 
-```text id="nmn9v9"
+```text
 same key + same value       → no penalty
 same key + different value  → mismatch penalty
 missing field information   → neutral or soft contribution
@@ -550,21 +475,21 @@ The general distance function is controlled through component weights. In title-
 
 A lexical configuration sets the vector contribution to zero:
 
-```text id="w1gmae"
+```text
 w_title > 0
 w_vector = 0
 ```
 
 A vector configuration sets the title contribution to zero:
 
-```text id="fohki0"
+```text
 w_title = 0
 w_vector > 0
 ```
 
 A hybrid configuration activates both:
 
-```text id="kuguko"
+```text
 w_title > 0
 w_vector > 0
 ```
@@ -577,7 +502,7 @@ Brinicle uses an alpha parameter to control the balance between semantic distanc
 
 For `0 < p < 1`, alpha `p` is converted into:
 
-```text id="ggktyc"
+```text
 w_vector = 1
 w_lexical = (1 - p) / p
 ```
@@ -586,26 +511,26 @@ The vector component keeps full weight, while the lexical components are scaled 
 
 At the boundaries:
 
-```text id="cztgda"
+```text
 p = 1 → vector retrieval
 p = 0 → lexical retrieval
 ```
 
 For example, when `p = 0.90`:
 
-```text id="s69nzu"
+```text
 w_lexical = (1 - 0.90) / 0.90 = 0.1111
 ```
 
 If the base title weight is `0.45`, the effective title weight becomes:
 
-```text id="0ywkcy"
+```text
 0.45 · 0.1111 = 0.0500
 ```
 
 while the vector weight remains:
 
-```text id="on4rs2"
+```text
 w_vector = 1.0
 ```
 
@@ -623,9 +548,9 @@ This makes alpha part of the index configuration. In the benchmark, Brinicle ind
 
 ## 4.9 Distance-function summary
 
-Brinicle’s distance function combines interpretable regions of the encoded representation:
+Brinicle's distance function combines interpretable regions of the encoded representation:
 
-```text id="5iym77"
+```text
 title tokens        → Tversky-style symbolic distance
 dense vector        → scaled cosine distance
 structured fields   → identifier and key/value penalties
@@ -633,7 +558,7 @@ structured fields   → identifier and key/value penalties
 
 For title-based hybrid retrieval, the main distance is:
 
-```text id="2x8znv"
+```text
 D(q, d) =
 w_title  · D_title(q, d)
 + w_vector · D_vector(q, d)
@@ -705,7 +630,7 @@ The benchmark uses two product-search datasets: WANDS and Amazon ESCI.
 | WANDS                  |    42,994 |     450 |             30 |                420 | Title         |
 | Amazon ESCI, US locale | 1,215,854 |  20,458 |          2,000 |             18,458 | Title         |
 
-The tuning queries are used to select each engine’s hybrid parameter. They are excluded from final evaluation.
+The tuning queries are used to select each engine's hybrid parameter. They are excluded from final evaluation.
 
 Both datasets are evaluated using exact-match relevance only. For Amazon ESCI, only products labeled `E` are treated as relevant. `S`, `C`, and `I` labels are treated as non-relevant. The same binary relevance protocol is used for WANDS, where only exact relevance judgments are counted as relevant.
 
@@ -759,7 +684,7 @@ title
 
 For hybrid retrieval, each document also contains a dense vector field holding the precomputed title embedding.
 
-The Brinicle configuration used in the benchmark activates title-token evidence and dense-vector evidence. Structured fields such as category, subcategory, and attributes are part of Brinicle’s general item representation, but they are not active in this benchmark configuration.
+The Brinicle configuration used in the benchmark activates title-token evidence and dense-vector evidence. Structured fields such as category, subcategory, and attributes are part of Brinicle's general item representation, but they are not active in this benchmark configuration.
 
 ## 5.6 Runtime environment
 
@@ -957,7 +882,7 @@ Table 4 reports peak search memory for both datasets.
 
 Brinicle has the lowest measured search memory on both datasets. On WANDS, Brinicle uses `129 MB`, followed by Meilisearch at `239 MB`. On ESCI, Brinicle uses `1,731 MB`, followed by Weaviate at `4,794 MB`.
 
-The memory difference is larger on ESCI, where the corpus is substantially larger. In that setting, Brinicle’s peak search memory is less than half of the closest non-Brinicle measurement.
+The memory difference is larger on ESCI, where the corpus is substantially larger. In that setting, Brinicle's peak search memory is less than half of the closest non-Brinicle measurement.
 
 ## 6.5 Hit@K curves
 
@@ -991,7 +916,7 @@ These results support the single-graph formulation as a practical retrieval desi
 
 # 7. Discussion
 
-The results show that hybrid product retrieval can be implemented through a single HNSW graph while preserving competitive exact-relevance quality. Brinicle’s main distinction is not a single isolated relevance score, but the combination of retrieval quality, low search memory, and low search latency under the tested configuration.
+The results show that hybrid product retrieval can be implemented through a single HNSW graph while preserving competitive exact-relevance quality. Brinicle's main distinction is not a single isolated relevance score, but the combination of retrieval quality, low search memory, and low search latency under the tested configuration.
 
 This section discusses the implications of the benchmark results for hybrid retrieval design, product-title search, and deployment trade-offs.
 
@@ -1012,7 +937,7 @@ deep candidate coverage
 
 For product search, both behaviors can matter. Early ranking is important when results are shown directly to users. Deeper candidate coverage is important when the retrieval stage feeds reranking, recommendation, or downstream selection.
 
-The benchmark results therefore describe an operating profile rather than a single leaderboard. Brinicle’s profile is strongest in search-time efficiency and early exact-match ranking on the larger ESCI benchmark, while other systems show advantages in specific relevance metrics and deeper retrieval settings.
+The benchmark results therefore describe an operating profile rather than a single leaderboard. Brinicle's profile is strongest in search-time efficiency and early exact-match ranking on the larger ESCI benchmark, while other systems show advantages in specific relevance metrics and deeper retrieval settings.
 
 ## 7.2 Hybrid retrieval inside graph traversal
 
@@ -1039,7 +964,7 @@ Weaviate leads the reported deeper metric:
 Hit@100
 ```
 
-This distinction is important for interpreting hybrid retrieval systems. A method can be strong at placing an exact result near the top while another method can be stronger at retrieving more exact results somewhere inside a larger candidate set. The appropriate retrieval profile depends on the application. A direct product-search interface benefits from strong early ranking. A multi-stage ranking system may prefer broader top-k coverage before reranking. In this benchmark, Brinicle’s strongest relevance behavior appears in early exact-match ranking on ESCI, while its strongest system behavior appears consistently in latency and memory across both datasets.
+This distinction is important for interpreting hybrid retrieval systems. A method can be strong at placing an exact result near the top while another method can be stronger at retrieving more exact results somewhere inside a larger candidate set. The appropriate retrieval profile depends on the application. A direct product-search interface benefits from strong early ranking. A multi-stage ranking system may prefer broader top-k coverage before reranking. In this benchmark, Brinicle's strongest relevance behavior appears in early exact-match ranking on ESCI, while its strongest system behavior appears consistently in latency and memory across both datasets.
 
 ## 7.4 Search-time resource profile
 
@@ -1049,22 +974,22 @@ Brinicle has the lowest measured peak search memory on both WANDS and ESCI. The 
 
 ## 7.5 Alpha as index configuration
 
-Brinicle’s alpha affects graph construction as well as query-time search. This makes the hybrid parameter part of the index configuration rather than only a runtime fusion parameter. When the graph is built, the configured distance function influences neighborhood formation. A more semantic configuration creates graph neighborhoods shaped more strongly by vector similarity. A stronger lexical correction changes how symbolic title evidence contributes to those neighborhoods. This is different from hybrid systems where the lexical and vector indexes are built independently and the hybrid parameter only affects query-time score combination. In the benchmark, each Brinicle index is built using the tuned alpha selected for that dataset. This means the reported Brinicle results reflect both the encoded representation and the graph topology produced by the selected hybrid distance.
+Brinicle's alpha affects graph construction as well as query-time search. This makes the hybrid parameter part of the index configuration rather than only a runtime fusion parameter. When the graph is built, the configured distance function influences neighborhood formation. A more semantic configuration creates graph neighborhoods shaped more strongly by vector similarity. A stronger lexical correction changes how symbolic title evidence contributes to those neighborhoods. This is different from hybrid systems where the lexical and vector indexes are built independently and the hybrid parameter only affects query-time score combination. In the benchmark, each Brinicle index is built using the tuned alpha selected for that dataset. This means the reported Brinicle results reflect both the encoded representation and the graph topology produced by the selected hybrid distance.
 
 ## 7.6 Deployment implications
 
 The measured trade-off is relevant for deployments where search memory and latency are important constraints.
 
-A lower search-time memory footprint can reduce infrastructure cost, allow more indexes to run on the same machine, or leave more memory available for application logic. Lower latency can improve interactive search behavior and increase the headroom available for additional downstream processing. Brinicle’s design is therefore most directly relevant to search systems where hybrid retrieval is needed but maintaining multiple retrieval structures is expensive. The benchmarked setting is title-based product retrieval, but the architectural pattern is broader: encode multiple retrieval signals into one comparable object, then use a distance function that combines those signals during graph traversal.
+A lower search-time memory footprint can reduce infrastructure cost, allow more indexes to run on the same machine, or leave more memory available for application logic. Lower latency can improve interactive search behavior and increase the headroom available for additional downstream processing. Brinicle's design is therefore most directly relevant to search systems where hybrid retrieval is needed but maintaining multiple retrieval structures is expensive. The benchmarked setting is title-based product retrieval, but the architectural pattern is broader: encode multiple retrieval signals into one comparable object, then use a distance function that combines those signals during graph traversal.
 
 ## 7.7 Discussion summary
 
-The results support three main observations. First, title-based hybrid product retrieval can be expressed through one HNSW graph and one hybrid-aware distance function. Second, Brinicle achieves competitive exact-relevance quality on both evaluated datasets, with stronger early-ranking results on ESCI and close relevance results on WANDS. Third, Brinicle shows a consistent search-time resource advantage in the reported measurements, with the lowest P99 latency and lowest peak search memory on both datasets. These observations support the paper’s main claim: hybrid product retrieval can be modeled as a single-graph retrieval problem, with lexical and semantic evidence combined during graph traversal rather than through post-hoc fusion over separate retrieval structures.
+The results support three main observations. First, title-based hybrid product retrieval can be expressed through one HNSW graph and one hybrid-aware distance function. Second, Brinicle achieves competitive exact-relevance quality on both evaluated datasets, with stronger early-ranking results on ESCI and close relevance results on WANDS. Third, Brinicle shows a consistent search-time resource advantage in the reported measurements, with the lowest P99 latency and lowest peak search memory on both datasets. These observations support the paper's main claim: hybrid product retrieval can be modeled as a single-graph retrieval problem, with lexical and semantic evidence combined during graph traversal rather than through post-hoc fusion over separate retrieval structures.
 
 ---
 # 8. Limitations
 
-This benchmark evaluates title-based hybrid product retrieval using precomputed embeddings and exact-match relevance labels. It does not measure multi-field ranking, faceted filtering, personalized retrieval, distributed deployment, or reranking pipelines. The results should therefore be interpreted as evidence for the tested title + vector retrieval setting, not as a complete evaluation of every product-search workload. The compared systems were tuned through held-out queries under a shared benchmark configuration, but each engine has additional parameters and deployment modes that may change its behavior. Brinicle’s alpha also affects graph construction, so changing the hybrid balance requires rebuilding the index. Future experiments should evaluate richer metadata, structured filters, additional datasets, and multi-stage retrieval pipelines.
+This benchmark evaluates title-based hybrid product retrieval using precomputed embeddings and exact-match relevance labels. It does not measure multi-field ranking, faceted filtering, personalized retrieval, distributed deployment, or reranking pipelines. The results should therefore be interpreted as evidence for the tested title + vector retrieval setting, not as a complete evaluation of every product-search workload. The compared systems were tuned through held-out queries under a shared benchmark configuration, but each engine has additional parameters and deployment modes that may change its behavior. Brinicle's alpha also affects graph construction, so changing the hybrid balance requires rebuilding the index. Future experiments should evaluate richer metadata, structured filters, additional datasets, and multi-stage retrieval pipelines.
 
 ---
 
@@ -1186,7 +1111,7 @@ For Brinicle:
 
 # Appendix C. Hybrid Parameter Tuning
 
-Each engine’s hybrid parameter is selected using held-out tuning queries and then applied to the evaluation split.
+Each engine's hybrid parameter is selected using held-out tuning queries and then applied to the evaluation split.
 
 | Dataset | Brinicle | Meilisearch | OpenSearch | Typesense | Weaviate |
 | ------- | -------: | ----------: | ---------: | --------: | -------: |
