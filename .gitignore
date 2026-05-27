@@ -2,7 +2,19 @@
 __pycache__/
 *.py[codz]
 *$py.class
-
+datasets/ESCI/esci_us_test_title_only.document_ids.json
+datasets/ESCI/esci_us_test_title_only.document_ids.json
+datasets/ESCI/esci_us_test_title_only.documents.npy
+datasets/ESCI/esci_us_test_title_only.jsonl
+datasets/ESCI/esci_us_test_title_only.queries.npy
+datasets/ESCI/esci_us_test_title_only.query_ids.json
+datasets/ESCI/shopping_queries_dataset_examples.parquet
+datasets/ESCI/shopping_queries_dataset_products.parquet
+datasets/ESCI/shopping_queries_dataset_sources.csv
+datasets/WANDS/label.csv
+datasets/WANDS/preprocessed/
+datasets/WANDS/product.csv
+datasets/WANDS/query.csv
 # C extensions
 *.so
 
