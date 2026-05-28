@@ -11,7 +11,7 @@ This repository contains the benchmark code used to compare hybrid product searc
 
 The benchmark is run on two product-search datasets:
 
-- **WANDS** — about 4K products
+- **WANDS** — about 42K products
 - **Amazon ESCI** — about 1.2M products
 
 The task is simple:
